@@ -19,6 +19,7 @@ from keras.utils.np_utils import to_categorical
 class DNN(object):
 
     def __init__(self, layer_dims):
+        self.model_version = '1.0'
         self.layer_dims = layer_dims
 
 
@@ -39,6 +40,17 @@ class DNN(object):
           batch_size : (int)
           weights_hist : (bool)
         """
+        self.num_instances = x_train.shape[0]
+        self.num_features = x_train.shape[1]
+	self.params = {}
+	for k, v in locals().iteritems():
+            if k == 'kwargs':
+                for k_p, v_p in v.iteritems():
+                    self.params[k_p] = v_p
+            else:
+                if k not in ['x_train', 'y_train', 'self', 'verbose']:
+                    self.params[k] = v
+
         if y_train.ndim == 1:
             y_train = to_categorical(y_train)
 
@@ -65,3 +77,21 @@ class DNN(object):
 
     def predict(self, x_test):
         return self.model.predict_classes(x_test)
+
+    def summary(self, dataset='unknown'):
+        """ Returns a dictionary summary of the model and training. 
+        Can be used with store_results to save to database. 
+        """
+        output = {}
+        output['model_name'] = 'DNN'
+        output['model_version'] = self.model_version
+        output['num_layers'] = len(self.layer_dims)
+        output['layer_dimensions'] = self.layer_dims 
+        output['dataset'] = dataset
+        output['num_instances'] = self.num_instances 
+        output['num_features'] = self.num_features
+        output['training_time'] = self.history.history
+        output['accuracy'] = self.layers[-1].layer_stats['acc']
+        output['loss'] = self.layers[-1].layer_stats['loss']
+        output['parameters'] = self.params
+        return output

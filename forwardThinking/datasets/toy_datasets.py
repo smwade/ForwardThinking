@@ -58,9 +58,9 @@ def mnist_4_9():
     return x_train, y_train, x_test, y_test
 
 
-def load_mnist(flatten=True, one_hot_labels=False):
+def load_mnist(flatten=True, one_hot_labels=True):
     """ Load mnist dataset using keras."""
-    from keras.datasets import mnist, cifar10
+    from keras.datasets import mnist
     from keras.utils import np_utils
 
     (x_train, y_train_num), (x_test, y_test_num) = mnist.load_data()
@@ -85,14 +85,21 @@ def load_mnist(flatten=True, one_hot_labels=False):
     return x_train, y_train, x_test, y_test
 
 
-def load_cifar10(flatten=True, one_hot_labels=False):
+def load_cifar10(flatten=True, one_hot_labels=True):
     """ Load cifar10 dataset with keras."""
-    from keras.datasets import mnist, cifar10
+    from keras.datasets import cifar10
     from keras.utils import np_utils
 
     (x_train, y_train_num), (x_test, y_test_num) = cifar10.load_data()
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
+    y_train = np_utils.to_categorical(y_train_num, 10)
+    y_test = np_utils.to_categorical(y_test_num, 10)
+
+    if flatten:
+        x_train = x_train.reshape(x_train.shape[0], -1)
+        x_test = x_test.reshape(x_test.shape[0], -1)
+
     y_train = np_utils.to_categorical(y_train_num, 10)
     y_test = np_utils.to_categorical(y_test_num, 10)
 
