@@ -10,6 +10,10 @@ from keras.optimizers import Adam
 from keras import regularizers
 from keras.utils.np_utils import to_categorical
 
+from matplotlib import pyplot as plt
+import seaborn as sns
+
+
 class Layer(object):
     """
     A single layer for forward thinking. Trains a indavidual layer
@@ -56,6 +60,8 @@ class Layer(object):
         self.layer_stats['train_time'] = t1 - t0
         self.layer_stats['acc'] = self.history.history['acc'][-1]
         self.layer_stats['loss'] = self.history.history['loss'][-1]
+        self.layer_stats['acc_hist'] = self.history.history['acc']
+        self.layer_stats['loss_hist'] = self.history.history['loss']
 
         
     def predict(self, x_test):
@@ -74,103 +80,42 @@ class Layer(object):
 
         return tranformed
     
-class ForwardThinking(object):
-    """ A feed forward data transormation approach. """
-    
-    def __init__(self, layer_dims):
-        """
-        Args:
-          layer_dims : (list)
-        """
-        self.layers = []
-        input_dim = layer_dims[0]
-        self.num_classes = layer_dims[-1]
-
-        for l in layer_dims[1:]:
-            new_layer = Layer(input_dim, l, num_classes=self.num_classes)
-            input_dim = l
-            self.layers.append(new_layer)
-
-            
-    def fit(self, x_train, y_train, epochs=25, reg_amnt=0, learning_rate=.01,
-            batch_size=32, nonlinear='relu', loss_func='categorical_crossentropy',
-            weight_scale=.1, early_stopping=False, reg_type=1, verbose=True):
-        """ Fit the forward thinking model.
-        Args:
-          x_train : (array)
-          y_train : (array)
-          epochs : (int)
-          reg_amnt : (float)
-          learning_rate : (float)
-          batch_size : (int)
-          nonlinear : (string)
-          weight_scale : (float)
-        """  
-        if y_train.ndim == 1:
-            y_train =  to_categorical(y_train) 
-        print("Starting Training for ForwardThinking")
-        for i, layer in enumerate(self.layers):
-            print("[ Training Layer %s ]" % i)
-            layer.fit(x_train, y_train, epochs=epochs, reg_amnt=reg_amnt, learning_rate=learning_rate, 
-                    batch_size=batch_size, nonlinear=nonlinear, loss_func=loss_func,
-                      weight_scale=weight_scale, early_stopping=early_stopping, reg_type=reg_type, verbose=verbose)
-            x_train = layer.transform_data(x_train)
-
-            
-    def predict(self, x_test):
-        """ Predict with the trained model.
-        Args:
-          x_test : (array)
-        """
-        for i, layer in enumerate(self.layers[:-1]):
-            x_test = layer.transform_data(x_test)
-        final_layer = self.layers[-1]
-        return np.argmax(final_layer.predict(x_test), axis=1)
-    
-    
-    def model_summary(self):
-        print("Model Archetecture")
-        print("-"*30)
-        for i, layer in enumerate(self.layers):
-            print("Layer: {}".format(i))
-            print("Hidden: {}".format(layer.hidden_dim))
-            print("Time: {:.4}".format(layer.layer_stats['train_time']))
-            print("Accuracy: {:.4}".format(layer.layer_stats['acc']))
-            print("Loss: {:.4}".format(layer.layer_stats['loss']))
-            print("")
-
-
-
 
 class PassForwardThinking(object):
-    """ A feed forward data transormation approach. """
+    """ A feed forward layerwise training of neural networks. """
     
-    def __init__(self, layer_dims):
+    def __init__(self, layer_dims, stack_data=True):
         """
         Args:
-          layer_dims : (list)
+          layer_dims : (list) list of layer sizes (ie. [784,300,200,10])
+          stack_data : (bool) pass on old data to layers
         """
         self.model_version = '1.0'
         self.layers = []
         self.layer_dims = layer_dims
         self.num_classes = layer_dims[-1]
+        self.stack_data = stack_data
 
         input_dim = layer_dims[0]
         for l in layer_dims[1:]:
             new_layer = Layer(input_dim, l, num_classes=self.num_classes)
-            input_dim += l
+            if self.stack_data:
+                input_dim += l
+            else:
+                input_dim = l
             self.layers.append(new_layer)
 
-            
+
     def fit(self, x_train, y_train, epochs=25, reg_amnt=0, learning_rate=.01,
             batch_size=32, nonlinear='relu', loss_func='categorical_crossentropy',
             weight_scale=.1, early_stopping=False, reg_type=1, verbose=True):
-        """ Fit the forward thinking model.
+        """ Train the forward thinking model.
         Args:
           x_train : (array)
           y_train : (array)
           epochs : (int)
           reg_amnt : (float)
+          reg_type : (int) regularization type from [1,2]
           learning_rate : (float)
           batch_size : (int)
           nonlinear : (string)
@@ -188,30 +133,39 @@ class PassForwardThinking(object):
                 if k not in ['x_train', 'y_train', 'self', 'verbose']:
                     self.params[k] = v
 
+        # one hot encode data if necissary
         if y_train.ndim == 1:
             y_train =  to_categorical(y_train) 
-        if verbose: print("Starting Training for PushForwardThinking")
+
+        if verbose: print("Starting Training for PassForwardThinking")
         t0 = time.time()
         for i, layer in enumerate(self.layers):
-            if verbose: print("[ Training Layer %s ]" % i)
+            if verbose: print("[Training Layer %s]" % i)
             layer.fit(x_train, y_train, epochs=epochs, reg_amnt=reg_amnt, learning_rate=learning_rate, 
                     batch_size=batch_size, nonlinear=nonlinear, loss_func=loss_func,
                       weight_scale=weight_scale, early_stopping=early_stopping, reg_type=reg_type, verbose=verbose)
-            transformed_data = layer.transform_data(x_train)
-            x_train = np.hstack((x_train, transformed_data))
+            if self.stack_data:
+                transformed_data = layer.transform_data(x_train)
+                x_train = np.hstack((x_train, transformed_data))
+            else:
+                x_train = layer.transform_data(x_train)
 
         t1 = time.time()
         self.training_time = t1 - t0
+        if verbose: print("Trained model in %s seconds" % self.training_time)
 
-            
+
     def predict(self, x_test):
         """ Predict with the trained model.
         Args:
           x_test : (array)
         """
         for i, layer in enumerate(self.layers[:-1]):
-            transformed_data = layer.transform_data(x_test)
-            x_test = np.hstack((x_test, transformed_data))
+            if self.stack_data:
+                transformed_data = layer.transform_data(x_test)
+                x_test = np.hstack((x_test, transformed_data))
+            else:
+                x_test = layer.transform_data(x_test)
         final_layer = self.layers[-1]
         return np.argmax(final_layer.predict(x_test), axis=1)
     
@@ -223,6 +177,7 @@ class PassForwardThinking(object):
         output = {}
         output['model_name'] = 'PassForwardThinking'
         output['model_version'] = self.model_version
+        output['stack_data'] = self.stack_data
         output['num_layers'] = len(self.layer_dims)
         output['layer_dimensions'] = self.layer_dims 
         output['dataset'] = dataset
@@ -245,6 +200,11 @@ class PassForwardThinking(object):
         output['layer_losses'] = layer_losses
         output['layer_times'] = layer_times
 
-        return output
-        
 
+        return output
+
+    def training_history(self):
+        acc_list = []
+        for layer in self.layers:
+            acc_list += layer.layer_stats['acc_hist']
+        return acc_list

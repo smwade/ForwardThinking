@@ -6,6 +6,8 @@ Gets to 98.40% test accuracy after 20 epochs
 
 from __future__ import print_function
 
+import time
+
 import keras
 from keras.datasets import mnist
 from keras.models import Sequential
@@ -68,11 +70,14 @@ class DNN(object):
 
         model.add(Dense(layer_dims[-1], activation='softmax'))
         model.compile(loss=loss_func, optimizer=Adam(), metrics=['accuracy'])
+        t0 = time.time()
         self.history = model.fit(x_train, y_train,
                             batch_size=batch_size,
                             epochs=epochs,
                             verbose=verbose)
+        self.train_time = time.time() - t0 
         self.model = model
+        if verbose: print("Trained model in %s seconds" % self.train_time)
 
 
     def predict(self, x_test):
@@ -90,8 +95,11 @@ class DNN(object):
         output['dataset'] = dataset
         output['num_instances'] = self.num_instances 
         output['num_features'] = self.num_features
-        output['training_time'] = self.history.history
-        output['accuracy'] = self.layers[-1].layer_stats['acc']
-        output['loss'] = self.layers[-1].layer_stats['loss']
+        output['training_time'] = self.train_time
+        output['accuracy'] = self.history.history['acc'][-1]
+        output['loss'] = self.history.history['loss'][-1]
         output['parameters'] = self.params
         return output
+
+    def training_history(self):
+        return self.history.history['acc']

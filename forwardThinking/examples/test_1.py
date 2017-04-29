@@ -1,14 +1,12 @@
 import numpy as np
-from forwardThinking.datasets.toy_datasets import moons, chris_data, mnist_4_9, two_guassians
+from forwardThinking.datasets.toy_datasets import moons
 from forwardThinking.models import PassForwardThinking, DNN
 from forwardThinking.visualize import plot_data, plot_decision
 
 from matplotlib import pyplot as plt
 
-
 # Import data
-x_train, y_train, x_test, y_test = two_guassians()
-
+x_train, y_train, x_test, y_test = moons()
 
 print("\n --- FORWARD THINKING ---")
 model = PassForwardThinking([2,100,10,2])
