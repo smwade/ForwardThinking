@@ -10,9 +10,6 @@ from keras.optimizers import Adam
 from keras import regularizers
 from keras.utils.np_utils import to_categorical
 
-from matplotlib import pyplot as plt
-import seaborn as sns
-
 
 class Layer(object):
     """
@@ -79,9 +76,11 @@ class Layer(object):
             raise NotImplemented("tanh not implemented")
 
         return tranformed
-    
 
-class PassForwardThinking(object):
+
+
+
+class ForwardThinking(object):
     """ A feed forward layerwise training of neural networks. """
     
     def __init__(self, layer_dims, stack_data=True):
@@ -199,7 +198,6 @@ class PassForwardThinking(object):
         output['layer_accuracy'] = layer_accs
         output['layer_losses'] = layer_losses
         output['layer_times'] = layer_times
-
 
         return output
 
