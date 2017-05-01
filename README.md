@@ -13,3 +13,5 @@ This is a python library implementing push and pull forward thinking in tensorfl
 from the main directory do:
 `python setup.py install`
 
+## Notes
+The models are under forwardThinking/models
