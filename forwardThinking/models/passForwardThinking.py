@@ -1,12 +1,15 @@
 from __future__ import division, print_function
 import numpy as np
+from time import time
 
 import keras
-from keras.layers import Input, Dense
+from keras.layers import Input, Dense, Activation
 from keras.models import Model, Sequential
+
 
 def relu(x):    
     return np.maximum(x, 0)
+
 
 class PassForwardThinking(object):
     """ Keras based implementation of Pass-Forward Stacking. """
@@ -14,6 +17,9 @@ class PassForwardThinking(object):
     def __init__(self, layer_dims):
         self.layer_dims = layer_dims
         self.transform_weights = []
+        self.summary = {}
+        self.summary['model_name'] = 'PassForwardThinking'
+        self.summary['model_version'] = '1.0'
 
 
     def _build_layer_model(self, input_dim, hidden_dim, output_dim, frozen_weights, 
@@ -34,15 +40,16 @@ class PassForwardThinking(object):
         input_data = Input(shape=(input_dim,), name='input_data')
 
         # Old knowledge
-        knowledge = Dense(output_dim, activation='sigmoid', 
+        knowledge = Dense(output_dim, activation='linear', 
                     name='knowledge_dense', trainable=False)(input_data)
 
         # Learn knowledge
         h1 = Dense(hidden_dim, activation=activation, kernel_initializer='zeros', 
                 bias_initializer='zeros', name='transform_dense')(input_data)
-        learn = Dense(output_dim, activation='sigmoid', kernel_initializer='zeros', 
+        learn = Dense(output_dim, activation='linear', kernel_initializer='zeros', 
                     bias_initializer='zeros', name='learn_dense')(h1)
         output = keras.layers.add([knowledge, learn], name='join')
+        output = Activation('sigmoid')(output)
 
         model = Model(inputs=input_data, outputs=output)
         model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
@@ -63,7 +70,6 @@ class PassForwardThinking(object):
         """
         old_weights, old_bias = layer_model.get_layer('knowledge_dense').get_weights()
         new_weights, new_bias = layer_model.get_layer('learn_dense').get_weights()
-        print(old_weights.shape, new_weights.shape)
         weights = np.vstack((old_weights, new_weights))
         bias = old_bias + new_bias
         return [weights, bias]
@@ -80,27 +86,34 @@ class PassForwardThinking(object):
           optimizer
           epochs
         """
+        # Store model training info
+        self.summary['num_instances']= x_train.shape[0]
+        self.summary['num_features'] = x_train.shape[1]
+    
         # Inital Training
         input_dim = self.layer_dims[0]
         output_dim = self.layer_dims[-1]
 
+        t0 = time() # start time
+
+        if verbose: print("[Training Layer 0]")
         init_model = Sequential()
         init_model.add(Dense(output_dim, activation='sigmoid', input_shape=(input_dim,), name='init_dense'))
         init_model.compile(loss=loss_func, optimizer=optimizer, metrics=['accuracy'])
         init_model.fit(x_train, y_train, epochs=epochs, verbose=verbose)
         frozen_weights = init_model.get_layer('init_dense').get_weights()
         
-
         acc_hist = []
+        loss_hist = []
         for i, layer_dim in enumerate(self.layer_dims[1:]):
             # Build and train layer
-            if verbose: print("Training Layer %d" % i)
+            if verbose: print("[Training Layer %s]" % str(i+1))
             layer = self._build_layer_model(input_dim, layer_dim, output_dim, frozen_weights,
                     activation=activation, loss_func=loss_func, optimizer=optimizer)
 
-            layer.summary()
             layer_hist = layer.fit(x_train,  y_train, epochs=epochs, verbose=verbose)
             acc_hist += layer_hist.history['acc']
+            loss_hist += layer_hist.history['loss']
 
             # Transform input data
             t_weights = layer.get_layer('transform_dense').get_weights()
@@ -116,15 +129,23 @@ class PassForwardThinking(object):
 
         # store final learned weights
         self.weights = frozen_weights
-        return acc_hist
+
+        # Save training stats
+        self.summary['training_time'] = time() - t0
+        self.summary['accuracy'] = acc_hist
+        self.summary['loss'] = loss_hist
+
 
     def predict(x_test):
-
+        """ Use model to predict x_test """
         # Transform the data
         for layer_weights in self.transform_weights:
             W, b = layer_weights
-            x_test = np.dot(W, x) + b
-            x_test = relu(x_test)
+            new_data = relu(np.dot(x_test, W) + b)
+            x_test = np.hstack((x_test, new_data))# TODO check if the dimensions line up
 
         # Classify
-        # TODO
+        W, b = self.weights
+        output = np.dot(x_test, W) + b
+        # TODO add sigmoid
+        return output

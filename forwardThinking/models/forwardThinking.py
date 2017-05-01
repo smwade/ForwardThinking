@@ -174,7 +174,7 @@ class ForwardThinking(object):
         Can be used with store_results to save to database. 
         """
         output = {}
-        output['model_name'] = 'PassForwardThinking'
+        output['model_name'] = 'ForwardThinking'
         output['model_version'] = self.model_version
         output['stack_data'] = self.stack_data
         output['num_layers'] = len(self.layer_dims)
