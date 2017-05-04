@@ -206,3 +206,9 @@ class ForwardThinking(object):
         for layer in self.layers:
             acc_list += layer.layer_stats['acc_hist']
         return acc_list
+
+    def training_loss(self):
+        loss_hist = []
+        for layer in self.layers:
+            loss_hist += layer.layer_stats['loss_hist']
+        return loss_hist
