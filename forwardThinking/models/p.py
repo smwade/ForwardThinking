@@ -14,8 +14,7 @@ def relu(x):
 class PassForwardThinking(object):
     """ Keras based implementation of Pass-Forward Stacking. """
 
-    def __init__(self, layer_dims, freeze=True):
-        self.freeze = freeze
+    def __init__(self, layer_dims):
         self.layer_dims = layer_dims
         self.transform_weights = []
         self.summary = {}
@@ -23,7 +22,7 @@ class PassForwardThinking(object):
         self.summary['model_version'] = '1.0'
 
 
-    def _build_layer_model(self, input_dim, hidden_dim, output_dim, frozen_weights, freeze=True, 
+    def _build_layer_model(self, input_dim, hidden_dim, output_dim, frozen_weights, 
             activation='relu', loss_func='categorical_crossentropy', optimizer='adam'):
         """
          Build the layer model for one stage of passForwardThinking.
@@ -42,7 +41,7 @@ class PassForwardThinking(object):
 
         # Old knowledge
         knowledge = Dense(output_dim, activation='linear', 
-                    name='knowledge_dense', trainable=freeze)(input_data)
+                    name='knowledge_dense', trainable=False)(input_data)
 
         # Learn knowledge
         h1 = Dense(hidden_dim, activation=activation, kernel_initializer='zeros', 
@@ -76,7 +75,7 @@ class PassForwardThinking(object):
         return [weights, bias]
 
 
-    def fit(self, x_train, y_train, x_test, y_test, activation='relu', loss_func='categorical_crossentropy', 
+    def fit(self, x_train, y_train, activation='relu', loss_func='categorical_crossentropy', 
             optimizer='adam', epochs=10, verbose=True):
         """ Train the model. 
         Args:
@@ -87,8 +86,6 @@ class PassForwardThinking(object):
           optimizer
           epochs
         """
-        if verbose: print("Starting Training...\n")
-
         # Store model training info
         self.summary['num_instances']= x_train.shape[0]
         self.summary['num_features'] = x_train.shape[1]
@@ -100,11 +97,10 @@ class PassForwardThinking(object):
         t0 = time() # start time
 
         if verbose: print("[Training Layer 0]")
-        if verbose: print("Num Features: %d" % input_dim)
         init_model = Sequential()
         init_model.add(Dense(output_dim, activation='sigmoid', input_shape=(input_dim,), name='init_dense'))
         init_model.compile(loss=loss_func, optimizer=optimizer, metrics=['accuracy'])
-        init_model.fit(x_train, y_train, epochs=epochs, verbose=verbose, validation_data=(x_test, y_test))
+        init_model.fit(x_train, y_train, epochs=epochs, verbose=verbose)
         frozen_weights = init_model.get_layer('init_dense').get_weights()
         
         acc_hist = []
@@ -112,11 +108,10 @@ class PassForwardThinking(object):
         for i, layer_dim in enumerate(self.layer_dims[1:]):
             # Build and train layer
             if verbose: print("[Training Layer %s]" % str(i+1))
-            if verbose: print("Num Features: %d" % input_dim)
             layer = self._build_layer_model(input_dim, layer_dim, output_dim, frozen_weights,
-                    freeze=self.freeze, activation=activation, loss_func=loss_func, optimizer=optimizer)
+                    activation=activation, loss_func=loss_func, optimizer=optimizer)
 
-            layer_hist = layer.fit(x_train,  y_train, epochs=epochs, validation_data=(x_test, y_test), verbose=verbose)
+            layer_hist = layer.fit(x_train,  y_train, epochs=epochs, verbose=verbose)
             acc_hist += layer_hist.history['acc']
             loss_hist += layer_hist.history['loss']
 

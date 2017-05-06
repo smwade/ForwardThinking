@@ -24,7 +24,7 @@ class Layer(object):
         self.num_classes = num_classes
 
 
-    def fit(self, x_train, y_train, epochs=25, reg_amnt=0, learning_rate=.01,
+    def fit(self, x_train, y_train, x_test, y_test, epochs=25, reg_amnt=0, learning_rate=.01,
             batch_size=32, nonlinear='relu', loss_func='categorical_crossentropy', 
             weight_scale=.1, early_stopping=False, reg_type=1, verbose=True):
         """ Train the layer. """
@@ -46,8 +46,9 @@ class Layer(object):
         t0 = time.time()
         self.history = model.fit(x_train, y_train,
                 batch_size=batch_size,
+                validation_data=(x_test, y_test),
                 epochs=epochs,
-                verbose=verbose)#validation_data=(x_test, y_test))
+                verbose=verbose)
         t1 = time.time()
         
         self.model = model
@@ -59,6 +60,8 @@ class Layer(object):
         self.layer_stats['loss'] = self.history.history['loss'][-1]
         self.layer_stats['acc_hist'] = self.history.history['acc']
         self.layer_stats['loss_hist'] = self.history.history['loss']
+        self.layer_stats['test_acc_hist'] = self.history.history['val_acc']
+        self.layer_stats['test_loss_hist'] = self.history.history['val_loss']
 
         
     def predict(self, x_test):
@@ -95,6 +98,12 @@ class ForwardThinking(object):
         self.num_classes = layer_dims[-1]
         self.stack_data = stack_data
 
+        self.summary = {}
+        self.summary['model_name'] = 'ForwardThinking'
+        self.summary['model_version'] = '1.0'
+        self.summary['layer_dims'] = layer_dims
+        self.summary['stacked_data'] = stack_data
+
         input_dim = layer_dims[0]
         for l in layer_dims[1:]:
             new_layer = Layer(input_dim, l, num_classes=self.num_classes)
@@ -105,7 +114,7 @@ class ForwardThinking(object):
             self.layers.append(new_layer)
 
 
-    def fit(self, x_train, y_train, epochs=25, reg_amnt=0, learning_rate=.01,
+    def fit(self, x_train, y_train, x_test, y_test, epochs=25, reg_amnt=0, learning_rate=.01,
             batch_size=32, nonlinear='relu', loss_func='categorical_crossentropy',
             weight_scale=.1, early_stopping=False, reg_type=1, verbose=True):
         """ Train the forward thinking model.
@@ -140,17 +149,42 @@ class ForwardThinking(object):
         t0 = time.time()
         for i, layer in enumerate(self.layers):
             if verbose: print("[Training Layer %s]" % i)
-            layer.fit(x_train, y_train, epochs=epochs, reg_amnt=reg_amnt, learning_rate=learning_rate, 
+            layer.fit(x_train, y_train, x_test, y_test, epochs=epochs, reg_amnt=reg_amnt, learning_rate=learning_rate, 
                     batch_size=batch_size, nonlinear=nonlinear, loss_func=loss_func,
                       weight_scale=weight_scale, early_stopping=early_stopping, reg_type=reg_type, verbose=verbose)
             if self.stack_data:
                 transformed_data = layer.transform_data(x_train)
                 x_train = np.hstack((x_train, transformed_data))
+                transformed_data = layer.transform_data(x_test)
+                x_test = np.hstack((x_test, transformed_data))
             else:
                 x_train = layer.transform_data(x_train)
+                x_test = layer.transform_data(x_test)
 
-        t1 = time.time()
-        self.training_time = t1 - t0
+        self.summary['training_time'] = time.time() - t0
+        self.summary['num_instances'] = self.num_instances 
+        self.summary['num_features'] = self.num_features
+        self.summary['accuracy'] = self.layers[-1].layer_stats['acc']
+        self.summary['loss'] = self.layers[-1].layer_stats['loss']
+        self.summary['parameters'] = self.params
+
+        acc_list = []
+        test_acc_list = []
+        for layer in self.layers:
+            acc_list += layer.layer_stats['acc_hist']
+            test_acc_list += layer.layer_stats['test_acc_hist']
+        self.summary['accuracy'] = acc_list
+        self.summary['val_accuracy'] = test_acc_list
+
+        loss_hist = []
+        test_loss_hist = []
+        for layer in self.layers:
+            loss_hist += layer.layer_stats['loss_hist']
+            test_loss_hist += layer.layer_stats['test_loss_hist']
+        self.summary['loss'] = loss_hist
+        self.summary['val_loss'] = test_loss_hist
+        
+
         if verbose: print("Trained model in %s seconds" % self.training_time)
 
 
@@ -167,48 +201,3 @@ class ForwardThinking(object):
                 x_test = layer.transform_data(x_test)
         final_layer = self.layers[-1]
         return np.argmax(final_layer.predict(x_test), axis=1)
-    
-    
-    def summary(self, dataset='unknown'):
-        """ Returns a dictionary summary of the model and training. 
-        Can be used with store_results to save to database. 
-        """
-        output = {}
-        output['model_name'] = 'ForwardThinking'
-        output['model_version'] = self.model_version
-        output['stack_data'] = self.stack_data
-        output['num_layers'] = len(self.layer_dims)
-        output['layer_dimensions'] = self.layer_dims 
-        output['dataset'] = dataset
-        output['num_instances'] = self.num_instances 
-        output['num_features'] = self.num_features
-        output['training_time'] = self.training_time
-        output['accuracy'] = self.layers[-1].layer_stats['acc']
-        output['loss'] = self.layers[-1].layer_stats['loss']
-        output['parameters'] = self.params
-
-        layer_accs = []
-        layer_times = []
-        layer_losses = []
-        for i, layer in enumerate(self.layers):
-            layer_times.append(layer.layer_stats['train_time'])
-            layer_accs.append(layer.layer_stats['acc'])
-            layer_losses.append(layer.layer_stats['loss'])
-
-        output['layer_accuracy'] = layer_accs
-        output['layer_losses'] = layer_losses
-        output['layer_times'] = layer_times
-
-        return output
-
-    def training_history(self):
-        acc_list = []
-        for layer in self.layers:
-            acc_list += layer.layer_stats['acc_hist']
-        return acc_list
-
-    def training_loss(self):
-        loss_hist = []
-        for layer in self.layers:
-            loss_hist += layer.layer_stats['loss_hist']
-        return loss_hist

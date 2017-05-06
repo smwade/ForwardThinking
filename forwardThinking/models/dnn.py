@@ -21,11 +21,14 @@ from keras.utils.np_utils import to_categorical
 class DNN(object):
 
     def __init__(self, layer_dims):
-        self.model_version = '1.0'
         self.layer_dims = layer_dims
+        self.summary = {}
+        self.summary['model_name'] = 'DNN'
+        self.summary['model_version'] = '1.0'
+        self.summary['layer_dims'] = layer_dims
 
 
-    def fit(self, x_train, y_train, nonlinear='relu', loss_func='categorical_crossentropy', learning_rate=.01, 
+    def fit(self, x_train, y_train, x_test, y_test, nonlinear='relu', loss_func='categorical_crossentropy', learning_rate=.01, 
             reg_type=2, reg=0, epochs=20, batch_size=32, verbose=True):
         """ 
         Train the DNN
@@ -42,15 +45,15 @@ class DNN(object):
           batch_size : (int)
           weights_hist : (bool)
         """
-        self.num_instances = x_train.shape[0]
-        self.num_features = x_train.shape[1]
+        self.summary['num_instances'] = x_train.shape[0]
+        self.summary['num_features'] = x_train.shape[1]
 	self.params = {}
 	for k, v in locals().iteritems():
             if k == 'kwargs':
                 for k_p, v_p in v.iteritems():
                     self.params[k_p] = v_p
             else:
-                if k not in ['x_train', 'y_train', 'self', 'verbose']:
+                if k not in ['x_train', 'y_train', 'x_test', 'y_test', 'self', 'verbose']:
                     self.params[k] = v
 
         if y_train.ndim == 1:
@@ -73,33 +76,21 @@ class DNN(object):
         t0 = time.time()
         self.history = model.fit(x_train, y_train,
                             batch_size=batch_size,
+                            validation_data=(x_test, y_test),
                             epochs=epochs,
                             verbose=verbose)
-        self.train_time = time.time() - t0 
+
         self.model = model
+        self.summary['training_time'] = time.time() - t0
+        self.summary['accuracy'] = self.history.history['acc']
+        self.summary['loss'] = self.history.history['loss']
+        self.summary['val_accuracy'] = self.history.history['val_acc']
+        self.summary['val_loss'] = self.history.history['val_loss']
+        self.summary['parameters'] = self.params
+
         if verbose: print("Trained model in %s seconds" % self.train_time)
 
 
     def predict(self, x_test):
+        """ Predict on new data with trained network """
         return self.model.predict_classes(x_test)
-
-    def summary(self, dataset='unknown'):
-        """ Returns a dictionary summary of the model and training. 
-        Can be used with store_results to save to database. 
-        """
-        output = {}
-        output['model_name'] = 'DNN'
-        output['model_version'] = self.model_version
-        output['num_layers'] = len(self.layer_dims)
-        output['layer_dimensions'] = self.layer_dims 
-        output['dataset'] = dataset
-        output['num_instances'] = self.num_instances 
-        output['num_features'] = self.num_features
-        output['training_time'] = self.train_time
-        output['accuracy'] = self.history.history['acc'][-1]
-        output['loss'] = self.history.history['loss'][-1]
-        output['parameters'] = self.params
-        return output
-
-    def training_history(self):
-        return self.history.history['acc']
