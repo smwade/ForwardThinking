@@ -57,6 +57,19 @@ def mnist_4_9():
     y_test = data['y_test']
     return x_train, y_train, x_test, y_test
 
+def load_iris():
+    import sklearn.datasets as sk_data
+    from sklearn.model_selection import train_test_split
+    from keras.utils import np_utils
+    data_dict = sk_data.load_iris()
+    x_train, x_test, y_train_num, y_test_num = \
+            train_test_split(data_dict['data'], data_dict['target'])
+
+    y_train = np_utils.to_categorical(y_train_num, 3)
+    y_test = np_utils.to_categorical(y_test_num, 3)
+    return x_train, y_train, x_test, y_test
+    
+
 
 def load_mnist(flatten=True, one_hot_labels=True):
     """ Load mnist dataset using keras."""

@@ -3,8 +3,9 @@ import numpy as np
 from time import time
 
 import keras
-from keras.layers import Input, Dense, Activation
+from keras.layers import Input, Dense, Activation, Dropout
 from keras.models import Model, Sequential
+from keras import regularizers
 
 
 def relu(x):    
@@ -20,11 +21,12 @@ class PassForwardThinking(object):
         self.transform_weights = []
         self.summary = {}
         self.summary['model_name'] = 'PassForwardThinking'
-        self.summary['model_version'] = '1.0'
+        self.summary['model_version'] = '1.1'
 
 
     def _build_layer_model(self, input_dim, hidden_dim, output_dim, frozen_weights, freeze=True, 
-            activation='relu', loss_func='categorical_crossentropy', optimizer='adam'):
+            activation='relu', loss_func='categorical_crossentropy', optimizer='adam', reg_type='l1',
+            reg=0, dropout=False):
         """
          Build the layer model for one stage of passForwardThinking.
 
@@ -38,18 +40,26 @@ class PassForwardThinking(object):
         Returns:
           model : (keras.model) layer model
         """
+        # Regularization
+        if reg_type == 'l1':
+            r = regularizers.l1(reg)
+        if reg_type == 'l2':
+            r = regularizers.l2(reg)
+        else:
+            r = regularizers.l1(0) #set to 0 for no regularization
 
         new_init = keras.initializers.RandomNormal(mean=0.0, stddev=0.05, seed=None)
         input_data = Input(shape=(input_dim,), name='input_data')
 
         # Old knowledge
-        knowledge = Dense(output_dim, activation='linear', 
+        knowledge = Dense(output_dim, activation='linear', kernel_regularizer=r,
                     name='knowledge_dense', trainable=freeze)(input_data)
 
         # Learn knowledge
-        h1 = Dense(hidden_dim, activation=activation, kernel_initializer=new_init, 
-                bias_initializer='zeros', name='transform_dense')(input_data)
-        learn = Dense(output_dim, activation='linear', kernel_initializer='zeros', 
+        h1 = Dense(hidden_dim, activation=activation, kernel_regularizer=r, 
+                kernel_initializer=new_init, bias_initializer='zeros', name='transform_dense')(input_data)
+        if dropout : Dropout(.25)(h1)
+        learn = Dense(output_dim, activation='linear', kernel_initializer='zeros', kernel_regularizer=r, 
                     bias_initializer='zeros', name='learn_dense')(h1)
         output = keras.layers.add([knowledge, learn], name='join')
         output = Activation('sigmoid')(output)
@@ -79,7 +89,7 @@ class PassForwardThinking(object):
 
 
     def fit(self, x_train, y_train, x_test, y_test, activation='relu', loss_func='categorical_crossentropy', 
-            optimizer='adam', epochs=10, verbose=True):
+            optimizer='adam', epochs=10, reg_type='l1', reg=0, dropout=False, verbose=True):
         """ Train the model. 
         Args:
           x_train
@@ -90,6 +100,15 @@ class PassForwardThinking(object):
           epochs
         """
         if verbose: print("Starting Training...\n")
+        
+        # Regularization
+        if reg_type == 'l1':
+            print("Made it")
+            r = regularizers.l1(reg)
+        if reg_type == 'l2':
+            r = regularizers.l2(reg)
+        else:
+            r = regularizers.l1(0) #set to 0 for no regularization
 
         # Store model training info
         self.summary['num_instances']= x_train.shape[0]
@@ -104,7 +123,9 @@ class PassForwardThinking(object):
         if verbose: print("[Training Layer 0]")
         if verbose: print("Num Features: %d" % input_dim)
         init_model = Sequential()
-        init_model.add(Dense(output_dim, activation='sigmoid', input_shape=(input_dim,), name='init_dense'))
+        if dropout : init_model.add(Dropout(0.25, input_shape=(input_dim,)))
+        init_model.add(Dense(output_dim, activation='sigmoid', input_shape=(input_dim,), 
+            kernel_regularizer=r, name='init_dense'))
         init_model.compile(loss=loss_func, optimizer=optimizer, metrics=['accuracy'])
         init_model.fit(x_train, y_train, epochs=epochs, verbose=verbose, validation_data=(x_test, y_test))
         frozen_weights = init_model.get_layer('init_dense').get_weights()
@@ -118,7 +139,8 @@ class PassForwardThinking(object):
             if verbose: print("[Training Layer %s]" % str(i+1))
             if verbose: print("Num Features: %d" % input_dim)
             layer = self._build_layer_model(input_dim, layer_dim, output_dim, frozen_weights,
-                    freeze=self.freeze, activation=activation, loss_func=loss_func, optimizer=optimizer)
+                    freeze=self.freeze, activation=activation, loss_func=loss_func, optimizer=optimizer, 
+                    reg_type=reg_type, reg=reg, dropout=dropout)
 
             layer_hist = layer.fit(x_train,  y_train, epochs=epochs, validation_data=(x_test, y_test), verbose=verbose)
             acc_hist += layer_hist.history['acc']
