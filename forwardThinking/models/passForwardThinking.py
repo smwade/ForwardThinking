@@ -43,7 +43,7 @@ class PassForwardThinking(object):
         # Regularization
         if reg_type == 'l1':
             r = regularizers.l1(reg)
-        if reg_type == 'l2':
+        elif reg_type == 'l2':
             r = regularizers.l2(reg)
         else:
             r = regularizers.l1(0) #set to 0 for no regularization
@@ -103,7 +103,6 @@ class PassForwardThinking(object):
         
         # Regularization
         if reg_type == 'l1':
-            print("Made it")
             r = regularizers.l1(reg)
         if reg_type == 'l2':
             r = regularizers.l2(reg)
