@@ -141,7 +141,6 @@ class PassForwardThinking(object):
                     freeze=self.freeze, activation=activation, loss_func=loss_func, optimizer=optimizer, 
                     reg_type=reg_type, reg=reg, dropout=dropout)
 
-            layer.summary()
             layer_hist = layer.fit(x_train,  y_train, epochs=epochs, validation_data=(x_test, y_test), verbose=verbose)
             acc_hist += layer_hist.history['acc']
             loss_hist += layer_hist.history['loss']
