@@ -299,23 +299,23 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
     data_concat3 = keras.layers.concatenate([main_pool, conv1_pool, conv2_pool, conv3], axis=3)
 
-    conv4 = Conv2D(64, (3,3), activation='relu',
+    conv4 = Conv2D(64, (3,3),
+                   activation='relu',
                    padding='same',
                    name='conv4')(data_concat3)
 
-    conv4_drop = Dropout(.25)(conv4)
+    conv4_pool = MaxPooling2D(pool_size=(2,2))(conv4)
+    conv4_drop = Dropout(.25)(conv4_pool)
 
     conv4_flat = Flatten()(conv4_drop)
 
     conv4_fc1 = Dense(512, activation='relu',
-                        kernel_initializer='zeros', bias_initializer='zeros',
                         name='conv4_fc1')(conv4_flat)
+
     conv4_fc1_drop = Dropout(.5)(conv4_fc1)
-    conv4_fc2 = Dense(10, activation='linear', name='conv4_fc2',
-                        kernel_initializer='zeros', bias_initializer='zeros')(conv4_fc1_drop)
+    conv4_fc2 = Dense(10, activation='linear', name='conv4_fc2')(conv4_fc1_drop)
 
-
-
+    """
     conv3_flat = Flatten()(conv3)
     conv3_fc1 = Dense(512, activation='linear',
                         name='conv3_fc1')(conv3_flat)
@@ -323,7 +323,8 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
     conv3_fc2 = Dense(10, activation='linear', name='conv3_fc2')(conv3_fc1_drop)
 
     fc2 = keras.layers.add([conv4_fc2, conv3_fc2])
-    main_output = Activation('softmax')(fc2)
+    """
+    main_output = Activation('softmax')(conv4_fc2)
 
     model = Model(inputs=[main_input], outputs=[main_output])
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
@@ -373,8 +374,8 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
 
 
-conv1_weights = layer1(10)
-conv1_weights, conv2_weights = layer2(20, conv1_weights)
-conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(30, conv1_weights, conv2_weights)
+conv1_weights = layer1(1)
+conv1_weights, conv2_weights = layer2(2, conv1_weights)
+conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(3, conv1_weights, conv2_weights)
 
 layer4(40, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights)
