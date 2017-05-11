@@ -331,8 +331,6 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
     model.get_layer('conv1').set_weights(conv1_weights)
     model.get_layer('conv2').set_weights(conv2_weights)
     model.get_layer('conv3').set_weights(conv3_weights)
-    model.get_layer('conv3_fc1').set_weights(fc1_weights)
-    model.get_layer('conv3_fc2').set_weights(fc2_weights)
 
     x_train = x_train.astype('float32')
     x_test = x_test.astype('float32')
