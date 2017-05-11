@@ -1,3 +1,4 @@
+import numpy as np
 import keras
 from keras.datasets import cifar10
 from keras.preprocessing.image import ImageDataGenerator
@@ -299,7 +300,7 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
     data_concat3 = keras.layers.concatenate([main_pool, conv1_pool, conv2_pool, conv3], axis=3)
 
-    conv4 = Conv2D(64, (3,3),
+    conv4 = Conv2D(128, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv4')(data_concat3)
@@ -372,8 +373,26 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
 
 
-conv1_weights = layer1(1)
-conv1_weights, conv2_weights = layer2(2, conv1_weights)
-conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(3, conv1_weights, conv2_weights)
+conv1_weights = layer1(10)
+conv1_weights, conv2_weights = layer2(20, conv1_weights)
+conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(30, conv1_weights, conv2_weights)
 
-layer4(40, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights)
+np.save("conv1_W.npy", conv1_weights[0])
+np.save("conv1_b.npy", conv1_weights[1])
+np.save("conv2_W.npy", conv2_weights[0])
+np.save("conv2_b.npy", conv2_weights[1])
+np.save("conv3_W.npy", conv3_weights[0])
+np.save("conv3_b.npy", conv3_weights[1])
+np.save("fc1_W.npy", fc1_weights[0])
+np.save("fc1_b.npy", fc1_weights[1])
+np.save("fc2_W.npy", fc2_weights[0])
+np.save("fc2_b.npy", fc2_weights[1])
+
+conv1_weights = [np.load("conv1_W.npy"), np.load("conv1_b.npy")]
+conv2_weights = [np.load("conv2_W.npy"), np.load("conv2_b.npy")]
+conv3_weights = [np.load("conv3_W.npy"), np.load("conv3_b.npy")]
+fc1_weights = [np.load("fc1_W.npy"), np.load("fc1_b.npy")]
+fc2_weights = [np.load("fc2_W.npy"), np.load("fc2_b.npy")]
+
+
+layer4(100, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights)

@@ -5,6 +5,7 @@ __pycache__/
 *.swm
 *.py.*
 *.ipynb_checkpoint
+*.npy
 
 # C extensions
 *.so
