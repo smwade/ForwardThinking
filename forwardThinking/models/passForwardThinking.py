@@ -174,14 +174,4 @@ class PassForwardThinking(object):
 
     def predict(x_test):
         """ Use model to predict x_test """
-        # Transform the data
-        for layer_weights in self.transform_weights:
-            W, b = layer_weights
-            new_data = relu(np.dot(x_test, W) + b)
-            x_test = np.hstack((x_test, new_data))
-
-        # Classify
-        W, b = self.weights
-        output = np.dot(x_test, W) + b
-        # TODO add sigmoid
-        return output
+        raise NotImplementedError("Just use training...")

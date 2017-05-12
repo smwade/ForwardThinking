@@ -37,7 +37,7 @@ class WeddingCake(object):
         act_indx = 1
         for l in model.layers[1:-1]:
             if "dense" in l.name:
-                new_model.add(Dense(l.output_shape[1], input_shape=(l.input_shape[1],), name="dense_{}".format(dense_idx)))
+                new_model.add(Dense(l.output_shape[1], input_shape=(l.input_shape[1],), activation='linear', name="dense_{}".format(dense_idx)))
                 dense_idx += 1
             if "activation" in l.name:
                 new_model.add(PReLU(alpha_initializer=prelu_init, name='activation_{}'.format(act_indx)))

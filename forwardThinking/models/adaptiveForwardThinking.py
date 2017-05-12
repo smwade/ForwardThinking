@@ -21,7 +21,7 @@ class AdaptiveForwardThinking(object):
         self.output_dim = output_dim
         self.transform_weights = []
         self.summary = {}
-        self.summary['model_name'] = 'PassForwardThinking'
+        self.summary['model_name'] = 'AdaptiveForwardThinking'
         self.summary['model_version'] = '1.0'
 
 
@@ -106,7 +106,8 @@ class AdaptiveForwardThinking(object):
         init_model.add(Dense(self.output_dim, activation='sigmoid', input_shape=(input_dim,), name='init_dense'))
         init_model.compile(loss=loss_func, optimizer=optimizer, metrics=['accuracy'])
         early_stop = keras.callbacks.EarlyStopping(monitor='val_acc', patience=1, verbose=verbose, mode='auto')
-        training = init_model.fit(x_train, y_train, epochs=max_epochs, verbose=verbose, callbacks=[early_stop], validation_data=(x_test, y_test))
+        training = init_model.fit(x_train, y_train, epochs=max_epochs, verbose=verbose, 
+                callbacks=[early_stop], validation_data=(x_test, y_test))
         frozen_weights = init_model.get_layer('init_dense').get_weights()
         
         acc_hist = []
@@ -123,7 +124,8 @@ class AdaptiveForwardThinking(object):
             if verbose: print("[Num Features: %d]" % input_dim)
             layer = self._build_layer_model(input_dim, self.hidden_dim, self.output_dim, frozen_weights,
                     freeze=self.freeze, activation=activation, loss_func=loss_func, optimizer=optimizer)
-            layer_hist = layer.fit(x_train,  y_train, epochs=max_epochs-epoch, validation_data=(x_test, y_test), callbacks=[early_stop], verbose=verbose)
+            layer_hist = layer.fit(x_train,  y_train, epochs=max_epochs-epoch, 
+                    validation_data=(x_test, y_test), callbacks=[early_stop], verbose=verbose)
 
             epoch += len(layer_hist.history['loss'])
             acc_hist += layer_hist.history['acc']
@@ -164,15 +166,4 @@ class AdaptiveForwardThinking(object):
 
     def predict(x_test):
         """ Use model to predict x_test """
-        # TODO - NOT DONE
-        # Transform the data
-        for layer_weights in self.transform_weights:
-            W, b = layer_weights
-            new_data = relu(np.dot(x_test, W) + b)
-            x_test = np.hstack((x_test, new_data))
-
-        # Classify
-        W, b = self.weights
-        output = np.dot(x_test, W) + b
-        # TODO add sigmoid
-        return output
+        raise NotImplementedError("Using training for results...")
