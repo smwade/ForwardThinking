@@ -10,6 +10,7 @@ from keras import regularizers
 from keras import backend as K
 
 def prelu_init(shape, dtype=None):
+    """ Init function for PreLU to start as identitiy """
     return -1
 
 class WeddingCake(object):
@@ -30,7 +31,7 @@ class WeddingCake(object):
         """ Add a hidden layer to the model. """
         # Create model
         new_model = Sequential()
-        new_model.add(Dense(self.hidden_dim, input_shape=(self.input_dim,), name="dense_0"))
+        new_model.add(Dense(self.hidden_dim, input_shape=(self.input_dim,), activation='relu', name="dense_0"))
 
         dense_idx = 1
         act_indx = 1
@@ -50,13 +51,13 @@ class WeddingCake(object):
         
         # same output layer
         old_weights = model.get_layer("output_dense").get_weights()
-        new_model.add(Dense(self.output_dim, name="output_dense"))
+        new_model.add(Dense(self.output_dim, activation='sigmoid', name="output_dense"))
         new_model.get_layer("output_dense").set_weights(old_weights)
 
         # Set the old weights
         dense_idx = 0
         act_indx = 1
-        for l in model.layers[:-3]:
+        for l in model.layers[:-1]:
             if "dense" in l.name:
                 old_weights = model.get_layer("dense_{}".format(dense_idx)).get_weights()
                 new_model.get_layer('dense_{}'.format(dense_idx)).set_weights(old_weights)
@@ -75,16 +76,18 @@ class WeddingCake(object):
             epochs=10, reg_type='l1', reg=0, dropout=False, verbose=True):
         """ Train the model. 
         Args:
-          x_train
-          y_train
-          activation
-          loss_func
-          optimizer
-          epochs
-          reg_type
-          reg
-          dropout
-          verbose
+          x_train : (np.array) the training data
+          y_train : (np.array) labels
+          x_test : (np.array) testing data for validation
+          y_test : (np.array) testing labels
+          activation : (string) the activation for first layer
+          loss_func : (string) loss function
+          optimizer : (string) gradienbt descent method
+          epochs : (int) the number of epochs per layer
+          reg_type : (string) type of reg, 'l1' or 'l2'
+          reg : (double) amount of regularization
+          dropout : (bool) drop 25% weights at training
+          verbose : (bool) print training
         """
         if verbose: print("Starting Training...\n")
         
@@ -114,7 +117,6 @@ class WeddingCake(object):
         model.add(Dense(self.output_dim, activation='sigmoid', kernel_regularizer=r, name='output_dense'))
         model.compile(loss=loss_func, optimizer=optimizer, metrics=['accuracy'])
         layer_hist = model.fit(x_train, y_train, epochs=epochs, verbose=verbose, validation_data=(x_test, y_test))
-        model.summary()
         acc_hist += layer_hist.history['acc']
         loss_hist += layer_hist.history['loss']
         test_acc_hist += layer_hist.history['val_acc']
@@ -126,7 +128,6 @@ class WeddingCake(object):
             model = self._extend(model) 
 
             layer_hist = model.fit(x_train,  y_train, epochs=epochs, validation_data=(x_test, y_test), verbose=verbose)
-            model.summary()
             acc_hist += layer_hist.history['acc']
             loss_hist += layer_hist.history['loss']
             test_acc_hist += layer_hist.history['val_acc']
@@ -142,14 +143,4 @@ class WeddingCake(object):
 
     def predict(x_test):
         """ Use model to predict x_test """
-        # Transform the data
-        for layer_weights in self.transform_weights:
-            W, b = layer_weights
-            new_data = relu(np.dot(x_test, W) + b)
-            x_test = np.hstack((x_test, new_data))
-
-        # Classify
-        W, b = self.weights
-        output = np.dot(x_test, W) + b
-        # TODO add sigmoid
-        r
+        raise NotImplementedError("Not finished...")
