@@ -11,7 +11,7 @@ from keras import backend as K
 
 def prelu_init(shape, dtype=None):
     """ Init function for PreLU to start as identitiy """
-    return -1
+    return 1
 
 class WeddingCake(object):
     """ Keras based implementation of push-Forward Stacking., aka Wedding Cake """

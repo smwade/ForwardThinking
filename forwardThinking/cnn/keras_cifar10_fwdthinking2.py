@@ -21,6 +21,7 @@ def layer1(epochs):
     y_train = keras.utils.to_categorical(y_train, num_classes)
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
+    print(x_train.shape[1:])
     main_input = Input(shape=x_train.shape[1:], name='main_input')
     conv1 = Conv2D(32, (3,3),
                    activation='relu',
