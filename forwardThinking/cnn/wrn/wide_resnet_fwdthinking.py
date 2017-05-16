@@ -16,10 +16,10 @@ def save_weights(model, filename, stage, block):
     np.savez(filename, W_conv1=conv1_weights[0], b_conv1=conv1_weights[1],
                        W_conv2=conv2_weights[0], b_conv2=conv2_weights[1])
 
- 
+
     fc1_weights = model.get_layer('fc1').get_weights()
     fc2_weights = model.get_layer('fc2').get_weights()
-  
+
     np.savez('fc_'+filename, W_fc1=fc1_weights[0], b_fc1=fc1_weights[1],
                        W_fc2=fc2_weights[0], b_fc2=fc2_weights[1])
 
@@ -34,7 +34,7 @@ def load_fc_weights(filename):
 
 def load_conv_weights(filename):
     weights = np.load(filename)
-    return [weights["W_conv1"], weights["b_conv1"]]
+    return [weights["W_conv"], weights["b_conv"]]
 
 def residual_block(input_tensor, num_filters, stage, block, trainable=True, weights=[]):
     stage = str(stage)
@@ -145,20 +145,7 @@ def layer11(epochs):
     print (np.argmax(model.predict(x_test), axis=1) == np.argmax(y_test, axis=1)).mean()
 
     conv1_weights = model.get_layer('conv1').get_weights()
-    np.savez('conv1_weights.npz', W_conv1=conv1_weights[0], b_conv1=conv1_weights[1])
-  
-    """ 
-    print "\n\n\nConv1"
-    print model.get_layer('conv1').get_weights()
-    print "\nConv1-1_i\n"
-    print model.get_layer('conv1-1_i').get_weights()
-    print "\nConv1-1_ii\n"
-    print model.get_layer('conv1-1_ii').get_weights()
-    print "\nfc1\n"
-    print model.get_layer('fc1').get_weights()
-    print "\nfc2\n"
-    print model.get_layer('fc2').get_weights()
-    """
+    np.savez('conv1_weights.npz', W_conv=conv1_weights[0], b_conv=conv1_weights[1])
 
     return model
 
