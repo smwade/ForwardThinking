@@ -23,7 +23,7 @@ def layer1(epochs):
 
     print(x_train.shape[1:])
     main_input = Input(shape=x_train.shape[1:], name='main_input')
-    conv1 = Conv2D(32, (3,3),
+    conv1 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv1')(main_input)
@@ -95,14 +95,14 @@ def layer2(epochs, conv1_weights):
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
     main_input = Input(shape=x_train.shape[1:], name='main_input')
-    conv1 = Conv2D(32, (3,3),
+    conv1 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv1',
                    trainable=False)(main_input)
     data_concat = keras.layers.concatenate([main_input, conv1], axis=3)
 
-    conv2 = Conv2D(32, (3,3),
+    conv2 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv2')(data_concat)
@@ -176,13 +176,13 @@ def layer3(epochs, conv1_weights, conv2_weights):
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
     main_input = Input(shape=x_train.shape[1:], name='main_input')
-    conv1 = Conv2D(32, (3,3),
+    conv1 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv1',
                    trainable=False)(main_input)
     data_concat = keras.layers.concatenate([main_input, conv1], axis=3)
-    conv2 = Conv2D(32, (3,3),
+    conv2 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv2',
@@ -198,7 +198,7 @@ def layer3(epochs, conv1_weights, conv2_weights):
 
     final_input = keras.layers.concatenate([main_drop, conv1_drop, conv2_drop], axis=3)
 
-    conv3 = Conv2D(64, (3,3),
+    conv3 = Conv2D(128, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv3')(final_input)
@@ -275,13 +275,13 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
     y_test = keras.utils.to_categorical(y_test, num_classes)
 
     main_input = Input(shape=x_train.shape[1:], name='main_input')
-    conv1 = Conv2D(32, (3,3),
+    conv1 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv1',
                    trainable=False)(main_input)
     data_concat = keras.layers.concatenate([main_input, conv1], axis=3)
-    conv2 = Conv2D(32, (3,3),
+    conv2 = Conv2D(64, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv2',
@@ -293,7 +293,7 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
     data_concat2 = keras.layers.concatenate([main_pool, conv1_pool, conv2_pool], axis=3)
 
-    conv3 = Conv2D(64, (3,3),
+    conv3 = Conv2D(128, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv3',
@@ -301,7 +301,7 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
     data_concat3 = keras.layers.concatenate([main_pool, conv1_pool, conv2_pool, conv3], axis=3)
 
-    conv4 = Conv2D(128, (3,3),
+    conv4 = Conv2D(256, (3,3),
                    activation='relu',
                    padding='same',
                    name='conv4')(data_concat3)
@@ -374,9 +374,9 @@ def layer4(epochs, conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2
 
 
 
-conv1_weights = layer1(10)
-conv1_weights, conv2_weights = layer2(20, conv1_weights)
-conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(30, conv1_weights, conv2_weights)
+conv1_weights = layer1(20)
+conv1_weights, conv2_weights = layer2(30, conv1_weights)
+conv1_weights, conv2_weights, conv3_weights, fc1_weights, fc2_weights = layer3(50, conv1_weights, conv2_weights)
 
 np.save("conv1_W.npy", conv1_weights[0])
 np.save("conv1_b.npy", conv1_weights[1])
