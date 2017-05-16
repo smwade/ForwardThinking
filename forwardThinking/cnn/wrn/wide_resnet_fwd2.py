@@ -36,6 +36,44 @@ def load_conv_weights(filename):
     weights = np.load(filename)
     return [weights["W_conv1"], weights["b_conv1"]]
 
+def residual_block(input_tensor, num_filters, stage, block, trainable=True, weights=[]):
+    stage = str(stage)
+    block = str(block)
+
+    # module structure proposed in http://arxiv.org/abs/1603.05027
+    if trainable:
+        x = keras.layers.BatchNormalization()(input_tensor)
+        x = Activation('relu')(x)
+        x = Conv2D(num_filters, (3,3), padding='same',
+                    name='conv'+stage+'-'+block+'_i')(x)
+        x = Dropout(.3)(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = Conv2D(num_filters, (3,3), padding='same',
+                name='conv'+stage+'-'+block+'_ii',
+                kernel_initializer='zeros', bias_initializer='zeros')(x)
+        x = keras.layers.add([input_tensor, x])
+        return x
+    else:
+        if not weights:
+            raise ValueError("weights list cannot be empty")
+
+        x = keras.layers.BatchNormalization()(input_tensor)
+        x = Activation('relu')(x)
+        x = Conv2D(num_filters, (3,3), padding='same', trainable=False,
+                weights=weights[0],
+                name='conv'+stage+'-'+block+'_i')(x)
+        x = Dropout(.3)(x)
+        x = keras.layers.BatchNormalization()(x)
+        x = Activation('relu')(x)
+        x = Conv2D(num_filters, (3,3), padding='same', trainable=False,
+                weights=weights[1],
+                name='conv'+stage+'-'+block+'_ii')(x)
+
+        x = keras.layers.add([input_tensor, x])
+        return x
+
+
 def layer11(epochs):
     batch_size = 100
     num_classes = 10
@@ -128,19 +166,19 @@ def layer_stage1_helper(epochs, block):
     main_input = Input(shape=x_train.shape[1:], name='main_input')
 
     conv1 = Conv2D(64, (3,3), activation='relu', name='conv1', trainable=False)(main_input)
-    x = residual_block(conv1, 64, 1, 1, trainable=False, weights=load_weights('weights_layer1.npz'))
+    x = residual_block(conv1, 64, 1, 1, trainable=False, weights=load_weights('weights_11.npz'))
 
-    for j in xrange(2, block):
-        x = residual_block(x, 64, 1, j, trainable=False, weights=load_weights('weights_layer{0}.npz'.format(i)))
+    for i in xrange(2, block):
+        x = residual_block(x, 64, 1, i, trainable=False, weights=load_weights('weights_1{0}.npz'.format(i)))
     x = residual_block(x, 64, 1, block)
 
     flat = Flatten()(x)
 
     fc_weights = load_fc_weights("fc_weights_layer{0}.npz".format(block-1))
 
-    fc1 = Dense(512, activation='relu', name='fc1')(flat)
+    fc1 = Dense(512, activation='relu', name='fc1', weights=fc_weights[0])(flat)
     fc1_drop = Dropout(0.5)(fc1)
-    main_output = Dense(10, activation='relu', name='fc2')(fc1_drop)
+    main_output = Dense(10, activation='relu', name='fc2', weights=fc_weights[1])(fc1_drop)
 
     model = Model(inputs=[main_input], outputs=[main_output])
     model.compile(optimizer='rmsprop',
@@ -192,8 +230,8 @@ def layer(epochs, stage, block):
     if stage == 1:
         save_weights(layer_stage1_helper(epochs, block), 'weights_1{0}.npz'.format(block), 1, block)
 
-save_weights(layer11(1), 'weights_11.npz', 1, 1)
-layer(1,1,2)
-layer(1,1,3)
+#save_weights(layer11(1), 'weights_11.npz', 1, 1)
+#layer(1,1,2)
+#layer(1,1,3)
 layer(1,1,4)
 layer(1,1,5)
