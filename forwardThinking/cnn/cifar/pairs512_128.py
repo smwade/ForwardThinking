@@ -228,7 +228,7 @@ def layer1(epochs):
                                                 epochs=epochs, callbacks=[history, time_history],
                                                 validation_data=(x_test, y_test))
 
-        np.savez('blitz_results.npz', acc=history.history['acc'], loss=history.history['loss'],
+        np.savez('layer1_results.npz', acc=history.history['acc'], loss=history.history['loss'],
                           val_acc=history.history['val_acc'], val_loss=history.history['val_loss'],
                   times=time_history.times, epoch_times=time_history.epoch_times)
 
@@ -331,7 +331,7 @@ def layer2(epochs):
                                                 epochs=epochs, callbacks=[history, time_history, rate_schedule],
                                                 validation_data=(x_test, y_test))
 
-        np.savez('blitz_results.npz', acc=history.history['acc'], loss=history.history['loss'],
+        np.savez('layer2_results.npz', acc=history.history['acc'], loss=history.history['loss'],
                           val_acc=history.history['val_acc'], val_loss=history.history['val_loss'],
                   times=time_history.times, epoch_times=time_history.epoch_times)
 
