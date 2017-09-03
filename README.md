@@ -1,6 +1,7 @@
 # ForwardThinking
 
-This is a python library implementing push and pull forward thinking in tensorflow.
+This is a python library implementing push and pull forward thinking in tensorflow. 
+https://arxiv.org/abs/1706.02480
 
 ## Requirments:
  - tensorflow >= 1.0
